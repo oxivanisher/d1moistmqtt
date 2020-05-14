@@ -56,21 +56,23 @@ long getMoistValue() {
   return soilMoistureValue;
 }
 
-bool requestMeasurement() {
-  DEBUG_PRINTLN("Request measurement to send it then to mqtt");
-  long molistValue = getMoistValue();
-  sprintf(moistValueAsChars, "%ld", molistValue);
+bool requestMeasurement(long moistValue) {
+  if (mqttClient.connected()) {
+    sprintf(moistValueAsChars, "%ld", moistValue);
 
-  String clientMac = WiFi.macAddress();
-  char measurementTopic[33] = "/d1moist/values/";
-  strcat(measurementTopic, clientMac.c_str());
+    String clientMac = WiFi.macAddress();
+    char measurementTopic[33] = "/d1moist/values/";
+    strcat(measurementTopic, clientMac.c_str());
 
-  bool worked = mqttClient.publish(measurementTopic, moistValueAsChars, false);
-  if (worked) {
-    DEBUG_PRINTLN("Publishing seems to have worked");
-    return true;
+    bool worked = mqttClient.publish(measurementTopic, moistValueAsChars, false);
+    if (worked) {
+      DEBUG_PRINTLN("Publishing seems to have worked");
+      return true;
+    } else {
+      DEBUG_PRINTLN("Publishing seems to have FAILED");
+    }
   } else {
-    DEBUG_PRINTLN("Publishing seems to have FAILED");
+    DEBUG_PRINTLN("Unable to publish measurement, since we are not connected to MQTT");
   }
   return false;
 }
@@ -190,11 +192,12 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   // Just keep one as an example. I.E. request the cfg values
   if ((char)payload[0] == 'c') {
-    DEBUG_PRINTLN("Request cfg values");
-    // do something
+    DEBUG_PRINTLN("MQTT Requests cfg values");
+    // TODO: do something
   } else if ((char)payload[0] == 'r') {
-    DEBUG_PRINTLN("Request measurement");
-    requestMeasurement();
+    DEBUG_PRINTLN("MQTT Requests a measurement");
+    long moistValue = getMoistValue();
+    requestMeasurement(moistValue);
   } else if ((char)payload[0] == '0') {
     DEBUG_PRINTLN("Dummy example with options");
     // options: red;green;blue;wait ms;
@@ -268,7 +271,8 @@ void loop() {
   // do the read magic and publish result
   // sleep between measurements MEASURE_EVERY
   if (nextMeasurement <= millis()) {
-    if (requestMeasurement()) {
+    long moistValue = getMoistValue();
+    if (requestMeasurement(moistValue)) {
       nextMeasurement = millis() + (MEASURE_EVERY * 1000);
     } else {
       DEBUG_PRINTLN("Something went wrong with measuring the value. Will retry again in 10 seconds.");
