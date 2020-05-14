@@ -21,7 +21,7 @@
   // How often should be measured automatically
   #define MEASURE_EVERY 900
   // Sensor Pin where the capacitive soil moisture sensor is connected
-  #define SENSOR_PIN D8
+  #define SENSOR_PIN A0
   // After running the calibration, insert the values here
   #define DRY 520
   #define WET 260
