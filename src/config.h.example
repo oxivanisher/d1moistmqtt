@@ -23,7 +23,7 @@
   // Sensor Pin where the capacitive soil moisture sensor is connected
   #define SENSOR_PIN D8
   // After running the calibration, insert the values here
-  #define MINVALUE 10
-  #define MAXVALUE 20
+  #define DRY 520
+  #define WET 260
 
 #endif

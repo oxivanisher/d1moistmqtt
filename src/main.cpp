@@ -25,14 +25,54 @@ String s = String();
 // Variable to store Wifi retries (required to catch some problems when i.e. the wifi ap mac address changes)
 uint8_t wifiConnectionRetries = 0;
 
-// Logic switches
+// Vars used to calculate moisture
+const int AirValue = AIR;
+const int WaterValue = WATER;
+int soilMoistureRawValue = 0;
+long soilMoistureValue = 0;
+
+// Logic switches and temporary vars
+unsigned nextMeasurement = 0;
+char moistValueAsChars[64];
 bool readyToUpload = false;
 bool initialPublish = false;
 
-float getMoistValue() {
-  int analogValue = analogRead(SENSOR_PIN);
+long getMoistValue() {
+  soilMoistureRawValue = analogRead(SENSOR_PIN);
+
+  DEBUG_PRINT("RAW Soil moisture value: ");
+  DEBUG_PRINTLN(soilMoistureRawValue);
   // calculate magic here
-  return analogValue;
+  if (soilMoistureRawValue > AirValue) {
+    soilMoistureValue = 0;
+  } else if (soilMoistureRawValue < WaterValue) {
+    soilMoistureValue = 100;
+  } else {
+    soilMoistureValue = map(soilMoistureRawValue, AirValue, WaterValue, 0, 100);
+  }
+
+  DEBUG_PRINT("    => Calculated value: ");
+  DEBUG_PRINTLN(soilMoistureValue);
+  return soilMoistureValue;
+}
+
+bool requestMeasurement() {
+  DEBUG_PRINTLN("Request measurement to send it then to mqtt");
+  long molistValue = getMoistValue();
+  sprintf(moistValueAsChars, "%ld", molistValue);
+
+  String clientMac = WiFi.macAddress();
+  char measurementTopic[33] = "/d1moist/values/";
+  strcat(measurementTopic, clientMac.c_str());
+
+  bool worked = mqttClient.publish(measurementTopic, moistValueAsChars, false);
+  if (worked) {
+    DEBUG_PRINTLN("Publishing seems to have worked");
+    return true;
+  } else {
+    DEBUG_PRINTLN("Publishing seems to have FAILED");
+  }
+  return false;
 }
 
 bool mqttReconnect() {
@@ -65,10 +105,8 @@ bool mqttReconnect() {
       mqttClient.subscribe("/d1moist/all", 1);
 
       // subscript to the mac address (private) topic
-      char topic[26];
-      strcat(topic, "/d1moist/");
-      strcat(topic, clientMac.c_str());
-      mqttClient.subscribe(topic, 1);
+      // measurementTopic = "/d1moist/values/";
+      // strcat(measurementTopic, clientMac.c_str());
 
       return true;
     } else {
@@ -151,13 +189,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   DEBUG_PRINTLN(" options.");
 
   // Just keep one as an example. I.E. request the cfg values
-  if ((char)payload[0] == '0') {
+  if ((char)payload[0] == 'c') {
     DEBUG_PRINTLN("Request cfg values");
     // do something
-  } else if ((char)payload[0] == '1') {
+  } else if ((char)payload[0] == 'r') {
     DEBUG_PRINTLN("Request measurement");
-    // do something
-  } else if ((char)payload[0] == '2') {
+    requestMeasurement();
+  } else if ((char)payload[0] == '0') {
     DEBUG_PRINTLN("Dummy example with options");
     // options: red;green;blue;wait ms;
     // s = String((char*)payload);
@@ -227,11 +265,19 @@ void loop() {
     }
   }
 
-  // feeding the watchdog to be sure
-  ESP.wdtFeed();
-
   // do the read magic and publish result
   // sleep between measurements MEASURE_EVERY
+  if (nextMeasurement <= millis()) {
+    if (requestMeasurement()) {
+      nextMeasurement = millis() + (MEASURE_EVERY * 1000);
+    } else {
+      DEBUG_PRINTLN("Something went wrong with measuring the value. Will retry again in 10 seconds.");
+      nextMeasurement = millis() + 10000;
+    }
+  }
+
+  // calm down, boy
+  delay(10);
 
   // calling loop at the end as proposed
   mqttClient.loop();
