@@ -31,7 +31,8 @@ bool initialPublish = false;
 
 float getMoistValue() {
   int analogValue = analogRead(SENSOR_PIN);
-  return ((float)analogRead(SENSOR_PIN) - 0.0) * (28.0 - 0.0) / (1024.0 - 0.0);
+  // calculate magic here
+  return analogValue;
 }
 
 bool mqttReconnect() {
@@ -83,7 +84,6 @@ bool mqttReconnect() {
 
 // connect to wifi
 bool wifiConnect() {
-  bool blinkState = true;
   wifiConnectionRetries += 1;
   int retryCounter = CONNECT_TIMEOUT * 1000;
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
