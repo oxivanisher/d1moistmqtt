@@ -124,6 +124,10 @@ bool mqttReconnect() {
 
 // connect to wifi
 bool wifiConnect() {
+  // testing http://blog.flynnmetrics.com/uncategorized/esp8266-exception-3/
+  WiFi.persistent(false);
+  WiFi.disconnect(true);
+
   wifiConnectionRetries += 1;
   int retryCounter = CONNECT_TIMEOUT * 1000;
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
