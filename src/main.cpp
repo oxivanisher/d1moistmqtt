@@ -1,28 +1,30 @@
-#include "ESP8266WiFi.h"
 #include <PubSubClient.h>
+
+#include "ESP8266WiFi.h"
 
 // Read settingd from config.h
 #include "config.h"
 
 #ifdef DEBUG
-  #define DEBUG_PRINT(x) Serial.print (x)
-  #define DEBUG_PRINTLN(x) Serial.println (x)
+#define DEBUG_PRINT(x) Serial.print(x)
+#define DEBUG_PRINTLN(x) Serial.println(x)
 #else
-  #define DEBUG_PRINT(x)
-  #define DEBUG_PRINTLN(x)
+#define DEBUG_PRINT(x)
+#define DEBUG_PRINTLN(x)
 #endif
 
 // Create an ESP8266 WiFiClient class to connect to the MQTT server.
 WiFiClient espClient;
 // or... use WiFiFlientSecure for SSL
-//WiFiClientSecure espClient;
+// WiFiClientSecure espClient;
 
 // Initialize MQTT
 PubSubClient mqttClient(espClient);
 // used for splitting arguments to effects
 String s = String();
 
-// Variable to store Wifi retries (required to catch some problems when i.e. the wifi ap mac address changes)
+// Variable to store Wifi retries (required to catch some problems when i.e. the
+// wifi ap mac address changes)
 uint8_t wifiConnectionRetries = 0;
 
 // Vars used to calculate moisture
@@ -64,7 +66,8 @@ bool requestMeasurement(long moistValue) {
     char measurementTopic[33] = "/d1moist/values/";
     strcat(measurementTopic, clientMac.c_str());
 
-    bool worked = mqttClient.publish(measurementTopic, moistValueAsChars, false);
+    bool worked =
+        mqttClient.publish(measurementTopic, moistValueAsChars, false);
     if (worked) {
       DEBUG_PRINTLN("Publishing seems to have worked");
       return true;
@@ -72,7 +75,8 @@ bool requestMeasurement(long moistValue) {
       DEBUG_PRINTLN("Publishing seems to have FAILED");
     }
   } else {
-    DEBUG_PRINTLN("Unable to publish measurement, since we are not connected to MQTT");
+    DEBUG_PRINTLN(
+        "Unable to publish measurement, since we are not connected to MQTT");
   }
   return false;
 }
@@ -97,7 +101,8 @@ bool mqttReconnect() {
     String clientMac = WiFi.macAddress();
     char lastWillTopic[35] = "/d1moist/lastwill/";
     strcat(lastWillTopic, clientMac.c_str());
-    if (mqttClient.connect(clientId.c_str(), MQTT_USERNAME, MQTT_PASSWORD, lastWillTopic, 1, 1, clientMac.c_str())) {
+    if (mqttClient.connect(clientId.c_str(), MQTT_USERNAME, MQTT_PASSWORD,
+                           lastWillTopic, 1, 1, clientMac.c_str())) {
       DEBUG_PRINTLN("connected");
 
       // clearing last will message
@@ -132,7 +137,7 @@ bool wifiConnect() {
   int retryCounter = CONNECT_TIMEOUT * 1000;
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  WiFi.mode(WIFI_STA); //  Force the ESP into client-only mode
+  WiFi.mode(WIFI_STA);  //  Force the ESP into client-only mode
   delay(1);
   DEBUG_PRINT("My Mac: ");
   DEBUG_PRINTLN(WiFi.macAddress());
@@ -144,7 +149,8 @@ bool wifiConnect() {
     if (retryCounter <= 0) {
       DEBUG_PRINTLN(" timeout reached!");
       if (wifiConnectionRetries > 19) {
-        DEBUG_PRINTLN("Wifi connection not sucessful after 20 tries. Resetting ESP8266!");
+        DEBUG_PRINTLN(
+            "Wifi connection not sucessful after 20 tries. Resetting ESP8266!");
         ESP.restart();
       }
       return false;
@@ -163,18 +169,18 @@ bool wifiConnect() {
 // helper functions
 // Thanks to https://gist.github.com/mattfelsen/9467420
 String getValue(String data, char separator, int index) {
-    int found = 0;
-    int strIndex[] = { 0, -1 };
-    int maxIndex = data.length();
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = data.length();
 
-    for (int i = 0; i <= maxIndex && found <= index; i++) {
-        if (data.charAt(i) == separator || i == maxIndex) {
-            found++;
-            strIndex[0] = strIndex[1] + 1;
-            strIndex[1] = (i == maxIndex) ? i+1 : i;
-        }
+  for (int i = 0; i <= maxIndex && found <= index; i++) {
+    if (data.charAt(i) == separator || i == maxIndex) {
+      found++;
+      strIndex[0] = strIndex[1] + 1;
+      strIndex[1] = (i == maxIndex) ? i + 1 : i;
     }
-    return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+  }
+  return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
 // logic
@@ -206,18 +212,20 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     DEBUG_PRINTLN("Dummy example with options");
     // options: red;green;blue;wait ms;
     // s = String((char*)payload);
-    // colorWipe (pixels.Color(getValue(s,';',1).toInt(), getValue(s,';',2).toInt(), getValue(s,';',3).toInt()), getValue(s,';',4).toInt());
+    // colorWipe (pixels.Color(getValue(s,';',1).toInt(),
+    // getValue(s,';',2).toInt(), getValue(s,';',3).toInt()),
+    // getValue(s,';',4).toInt());
   } else {
     DEBUG_PRINTLN("Unknown command");
   }
 }
 
 void setup() {
-  #ifdef DEBUG
-  Serial.begin(SERIAL_BAUD); // initialize serial connection
+#ifdef DEBUG
+  Serial.begin(SERIAL_BAUD);  // initialize serial connection
   // delay for the serial monitor to start
   delay(3000);
-  #endif
+#endif
 
   // Start the Pub/Sub client
   mqttClient.setServer(MQTT_SERVER, MQTT_SERVERPORT);
@@ -242,7 +250,7 @@ void loop() {
     delay(500);
 
     DEBUG_PRINTLN("MQTT is not connected, let's try to reconnect");
-    if (! mqttReconnect()) {
+    if (!mqttReconnect()) {
       // This should not happen, but seems to...
       DEBUG_PRINTLN("MQTT was unable to connect! Exiting the upload loop");
       delay(500);
@@ -257,7 +265,7 @@ void loop() {
   if ((WiFi.status() == WL_CONNECTED) && (!initialPublish)) {
     DEBUG_PRINT("MQTT discovery publish loop:");
 
-    String clientMac = WiFi.macAddress(); // 17 chars
+    String clientMac = WiFi.macAddress();  // 17 chars
     char topic[36] = "/d1moist/discovery/";
     strcat(topic, clientMac.c_str());
 
@@ -279,7 +287,9 @@ void loop() {
     if (requestMeasurement(moistValue)) {
       nextMeasurement = millis() + (MEASURE_EVERY * 1000);
     } else {
-      DEBUG_PRINTLN("Something went wrong with measuring the value. Will retry again in 10 seconds.");
+      DEBUG_PRINTLN(
+          "Something went wrong with measuring the value. Will retry again in "
+          "10 seconds.");
       nextMeasurement = millis() + 10000;
     }
   }
