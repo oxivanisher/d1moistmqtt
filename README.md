@@ -6,6 +6,8 @@ You have to calibrate your sensor. Please follow [this guide](https://wiki.dfrob
 Use the corresponding values for `DRY` and `WET` in `config.h` to compile the code and get correct measurements.
 
 ## Wireing
-* Moist sensor output to `A0`
-* Moist sensor GND to `G`
-* Moist sensor VCC to `5V`
+| Moist sensor | Wemos D1 mini |
+|--------------|---------------|
+| OUTPUT       | A0            |
+| GND          | G             |
+| VCC          | 5V            |
